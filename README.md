@@ -14,7 +14,7 @@
 8. 🔨 [8. Quick reference — all managed dependencies](#8-quick-reference--all-managed-dependencies)
 9. 🔨 [9. Versioning policy for this BOM itself](#9-versioning-policy-for-this-bom-itself)
 
-**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `1.1.0`
+**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `2.0.0`
 
 - **What it is:** a `pom`-packaged Maven **Bill of Materials (BOM)** — declares *versions* only. No Java sources, no jar, never on anyone's classpath directly.
 - **Its one job:** `import`-scoped into the `dependencyManagement` of one other POM — [`super-pom`](../super-pom).
@@ -26,7 +26,7 @@ This document covers:
 - What problem a BOM solves
 - How Maven's import-scope mechanism works under the hood
 - How this BOM is organized, section by section
-- Why several versions are *deliberately* held back from latest
+- Which versions were held back in the past, why, and how each pin was lifted
 - Where it sits in the three-tier dependency-management chain spanning this developer's multi-repo Maven setup
 
 ---
@@ -90,7 +90,7 @@ A plain `<dependency>` entry inside `<dependencyManagement>` can point at anothe
 </dependency>
 ```
 
-- This tells Maven: *"fetch `spring-boot-dependencies:4.1.0`'s own `<dependencyManagement>` block wholesale, and splice all of its entries into mine, as if I typed them all by hand."*
+- This tells Maven: *"fetch `spring-boot-dependencies:4.1.1`'s own `<dependencyManagement>` block wholesale, and splice all of its entries into mine, as if I typed them all by hand."*
 - Two properties matter a great deal in practice:
 
 1. **Additive/textual, not inherited-by-reference.** The importing POM's own entries merge with everything imported. Order matters: if two imported BOMs (or an import and a local entry) both manage the same `groupId:artifactId`, **the first declaration encountered wins** — later ones are silently ignored. This is why this BOM's platform-BOM block is annotated `<!-- import order matters: first declaration wins -->` and always imports `spring-boot-dependencies` before `spring-cloud-dependencies`, `spring-ai-bom`, and `testcontainers-bom` — Spring Cloud's and Spring AI's BOMs sometimes manage a coordinate (e.g. Jackson, Netty) that Spring Boot also manages, and the intent is for Spring Boot's own mutually-tested set to win.
@@ -117,10 +117,10 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 
 | Imported BOM                                          | Property                 | Version    |
 |-------------------------------------------------------|--------------------------|------------|
-| `org.springframework.boot:spring-boot-dependencies`   | `spring-boot.version`    | `4.1.0`    |
-| `org.springframework.cloud:spring-cloud-dependencies` | `spring-cloud.version`   | `2025.1.2` |
-| `org.springframework.ai:spring-ai-bom`                | `spring-ai.version`      | `2.0.0`    |
-| `org.testcontainers:testcontainers-bom`               | `testcontainers.version` | `1.21.4`   |
+| `org.springframework.boot:spring-boot-dependencies`   | `spring-boot.version`    | `4.1.1`    |
+| `org.springframework.cloud:spring-cloud-dependencies` | `spring-cloud.version`   | `2025.1.3` |
+| `org.springframework.ai:spring-ai-bom`                | `spring-ai.version`      | `2.0.1`    |
+| `org.testcontainers:testcontainers-bom`               | `testcontainers.version` | `2.0.5`    |
 
 - These four are themselves upstream-maintained BOMs, each managing dozens to hundreds of their own artifacts (e.g. `spring-boot-dependencies` manages `spring-boot-starter-web`, `jackson-databind`, `tomcat-embed-core`, and hundreds more).
 - `spring-cloud-dependencies` manages Spring Cloud Gateway/Config/OpenFeign/etc.; `spring-ai-bom` manages every `spring-ai-*-spring-boot-starter` and underlying model-client artifacts; `testcontainers-bom` manages every module (`postgresql`, `kafka`, `junit-jupiter`).
@@ -131,7 +131,7 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```xml
 <!-- ===== Oracle JDBC ===== -->
 ```
-- `com.oracle.database.jdbc:ojdbc17` at `${ojdbc.version}` (`23.26.2.0.0`).
+- `com.oracle.database.jdbc:ojdbc17` at `${ojdbc.version}` (`23.26.3.0.0`).
 - Oracle doesn't publish a BOM covering this driver conveniently, so it's pinned directly as an individually-managed artifact.
 
 ### <span style="color:hsl(347,80%,58%)">3.3 Resilience4j</span>
@@ -139,8 +139,8 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```xml
 <!-- ===== Resilience4j ===== -->
 ```
-- Five artifacts — `resilience4j-spring-boot3`, `resilience4j-reactor`, `resilience4j-circuitbreaker`, `resilience4j-micrometer`, `resilience4j-retry` — all pinned together to `${resilience4j.version}` (`2.3.0`).
-- See §4.1 for why this is held below latest.
+- The whole Resilience4j line is managed by importing `io.github.resilience4j:resilience4j-bom` at `${resilience4j.version}` (`2.4.0`). That covers the Boot 4 starter ***`resilience4j-spring-boot4`*** plus `-reactor`, `-circuitbreaker`, `-micrometer`, `-retry`, and the rest.
+- Services on Spring Boot 4 must use `resilience4j-spring-boot4`. The `-spring-boot3` starter runs a verifier that refuses Boot 4 at startup (see §4.1).
 
 ### <span style="color:hsl(125,80%,58%)">3.4 Observability</span>
 
@@ -162,9 +162,8 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```xml
 <!-- ===== Distributed scheduling ===== -->
 ```
-- `net.javacrumbs.shedlock:shedlock-spring`, `shedlock-provider-jdbc-template`, and `shedlock-provider-redis-spring`, all at `${shedlock.version}` (`5.16.0`).
+- `net.javacrumbs.shedlock:shedlock-spring`, `shedlock-provider-jdbc-template`, and `shedlock-provider-redis-spring`, plus `shedlock-micrometer`, all at `${shedlock.version}` (`7.10.1`).
 - Shedlock prevents the same `@Scheduled` job from running concurrently on more than one instance of a horizontally-scaled service, using a JDBC row lock or Redis lock as the distributed mutex, depending on the provider chosen.
-- See §4.3 for why this is held back from the 7.x line.
 
 ### <span style="color:hsl(177,80%,58%)">3.7 Document processing</span>
 
@@ -173,9 +172,9 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```
 | Artifact                        | Property            | Version  | Purpose                                              |
 |----------------------------------|---------------------|----------|-------------------------------------------------------|
-| `org.apache.pdfbox:pdfbox`      | `pdfbox.version`    | `3.0.7`  | Read/write/manipulate PDF documents                  |
+| `org.apache.pdfbox:pdfbox`      | `pdfbox.version`    | `3.0.8`  | Read/write/manipulate PDF documents                  |
 | `org.apache.poi:poi-ooxml`      | `poi-ooxml.version` | `5.5.1`  | Read/write Office Open XML (`.docx`/`.xlsx`/`.pptx`) |
-| `net.sourceforge.tess4j:tess4j` | `tess4j.version`    | `5.19.0` | JNA bindings to Tesseract OCR                        |
+| `net.sourceforge.tess4j:tess4j` | `tess4j.version`    | `5.20.0` | JNA bindings to Tesseract OCR                        |
 
 - These three together cover the document-ingestion pipeline used by the RAG/document-processing repos: extracting text from PDFs, Office documents, and scanned/image-based pages via OCR.
 
@@ -184,7 +183,7 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```xml
 <!-- ===== AI SDKs ===== -->
 ```
-- `com.anthropic:anthropic-java` at `${anthropic-java.version}` (`2.48.0`) — the official Anthropic Java SDK.
+- `com.anthropic:anthropic-java` at `${anthropic-java.version}` (`2.65.0`) — the official Anthropic Java SDK.
 - Used directly (outside Spring AI's abstraction) wherever a repo needs lower-level access to the Claude Messages API, streaming, or tool-use primitives that Spring AI's starter doesn't expose.
 
 ### <span style="color:hsl(92,80%,58%)">3.9 langchain4j</span>
@@ -192,7 +191,7 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```xml
 <!-- ===== langchain4j ===== -->
 ```
-- `dev.langchain4j:langchain4j-bom` is imported (`scope=import`, like the platform BOMs in §3.1) at `${langchain4j-bom.version}` (`1.17.1`), managing the core LangChain4j modules (chains, memory, embedding stores, tool integration) as one coordinated set.
+- `dev.langchain4j:langchain4j-bom` is imported (`scope=import`, like the platform BOMs in §3.1) at `${langchain4j-bom.version}` (`1.20.0`), managing the core LangChain4j modules (chains, memory, embedding stores, tool integration) as one coordinated set.
 
 Separately, further down the file:
 
@@ -205,7 +204,7 @@ Separately, further down the file:
 </dependency>
 ```
 
-- `langchain4j-community-redis` is pinned individually at `${langchain4j-redis.version}` (`1.17.0-beta27`) rather than picked up from the BOM import.
+- `langchain4j-community-redis` is pinned individually at `${langchain4j-redis.version}` (`1.20.0-beta30`) rather than picked up from the BOM import.
 - Reason: `langchain4j-community` modules (Redis, and others) release on their own beta cadence, independent of the core BOM's line — they aren't managed by it at all.
 - This entry exists because a repo in this workspace (`llm-rag` or similar) needs Redis-backed embedding storage.
 
@@ -216,8 +215,8 @@ Separately, further down the file:
 ```
 | Artifact                             | Property            | Version  |
 |---------------------------------------|---------------------|----------|
-| `org.apache.avro:avro`               | `avro.version`      | `1.12.1` |
-| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.3.0`  |
+| `org.apache.avro:avro`               | `avro.version`      | `1.12.2` |
+| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.3.2`  |
 
 - Avro provides the schema/serialization format; Confluent's `kafka-avro-serializer` integrates Avro (de)serialization with the Confluent Schema Registry for Kafka producers/consumers.
 - Note: `io.confluent` artifacts are **not** published to Maven Central — any repo consuming this managed version needs Confluent's Maven repository configured (`super-pom` already declares it under `<repositories>`).
@@ -227,14 +226,14 @@ Separately, further down the file:
 ```xml
 <!-- ===== Test utilities ===== -->
 ```
-- `io.swagger.parser.v3:swagger-parser` (`${swagger-parser.version}` = `2.1.45`) — parses/validates OpenAPI/Swagger specification documents, used in tests asserting a service's generated OpenAPI spec is well-formed or matches a contract.
+- `io.swagger.parser.v3:swagger-parser` (`${swagger-parser.version}` = `2.1.48`) — parses/validates OpenAPI/Swagger specification documents, used in tests asserting a service's generated OpenAPI spec is well-formed or matches a contract.
 
 ### <span style="color:hsl(145,80%,58%)">3.12 OpenAPI / Swagger UI</span>
 
 ```xml
 <!-- ===== OpenAPI / Swagger UI ===== -->
 ```
-- `org.springdoc:springdoc-openapi-starter-webflux-ui` and `org.springdoc:springdoc-openapi-starter-webmvc-ui`, both at `${springdoc.version}` (`3.0.3`).
+- `org.springdoc:springdoc-openapi-starter-webflux-ui` and `org.springdoc:springdoc-openapi-starter-webmvc-ui`, both at `${springdoc.version}` (`3.1.1`).
 - Generates OpenAPI 3 documentation and a Swagger UI page from Spring MVC or WebFlux controller annotations, depending on which stack a repo uses.
 
 ### <span style="color:hsl(282,80%,58%)">3.13 QR code processing</span>
@@ -257,7 +256,7 @@ Separately, further down the file:
 ```xml
 <!-- ===== openapi-generator "spring" template runtime dependency ===== -->
 ```
-- `org.openapitools:jackson-databind-nullable` at `${jackson-databind-nullable.version}` (`0.2.10`).
+- `org.openapitools:jackson-databind-nullable` at `${jackson-databind-nullable.version}` (`0.2.11`).
 - Not a library any repo depends on deliberately — it's a small runtime shim the `openapi-generator-maven-plugin`'s `spring` template (configured in `super-pom`) emits references to in generated model classes, to distinguish "field absent" from "field explicitly set to `null`" in JSON.
 - Pinned here so generated code always compiles against a known-good version regardless of which repo runs the generator.
 
@@ -266,45 +265,25 @@ Separately, further down the file:
 <a id="4-deliberately-held-back-versions--and-why"></a>
 ## <span style="color:hsl(335,80%,58%)">4. 🏷️ Deliberately held-back versions — and why</span>
 
-- Three properties in this BOM are pinned *below* the latest available upstream release, each with an inline comment in `pom.xml` explaining the reasoning.
-- These are the most important entries to understand — they represent accumulated debugging knowledge that would otherwise be rediscovered independently by whoever next runs `mvn versions:display-dependency-updates` and blindly bumps everything to latest.
+- ***As of 2.0.0 (Sept 2026) nothing is held back.*** Every property is on the latest GA release. The three historical pins below were resolved by migrating the code, not by ignoring the blocker. They are kept as a record of *why* each upgrade needed a code change.
 
-### <span style="color:hsl(112,80%,58%)">4.1 Resilience4j — held at `2.3.0`</span>
+### <span style="color:hsl(112,80%,58%)">4.1 Resilience4j — was held at `2.3.0` (resolved in 2.0.0)</span>
 
-```xml
-<!-- resilience4j 2.4.0 ships SpringBoot3Verifier that refuses Spring Boot 4.x at startup — hold at 2.3.0 -->
-<resilience4j.version>2.3.0</resilience4j.version>
-```
+- 2.4.0 added a `SpringBoot3Verifier` to `resilience4j-spring-boot3` that fails fast when it loads under Spring Boot 4.
+- The same release ships a dedicated ***`resilience4j-spring-boot4`*** starter, so the verifier only fires when you use the wrong starter on Boot 4.
+- Fix: the BOM imports `resilience4j-bom` 2.4.0, and every Boot 4 service depends on `resilience4j-spring-boot4`.
 
-- Resilience4j 2.4.0 introduced a `SpringBoot3Verifier` that fails fast if the Resilience4j Spring Boot integration loads under a major version it wasn't verified against.
-- Despite this BOM already being on **Spring Boot 4.1.0**, the 2.4.0 verifier hard-codes an expectation of Spring Boot 3.x and throws at startup rather than degrading gracefully.
-- Pragmatic fix: stay one minor version back, on 2.3.0, which predates the verifier and works correctly against Spring Boot 4.x.
-- Revisit once Resilience4j ships a release whose verifier is aware of Spring Boot 4.
+### <span style="color:hsl(250,80%,58%)">4.2 Testcontainers — was held at `1.21.4` (resolved in 2.0.0)</span>
 
-### <span style="color:hsl(250,80%,58%)">4.2 Testcontainers — held at `1.21.4`</span>
+- Testcontainers 2.x renamed every module artifact with a `testcontainers-` prefix (`postgresql` → `testcontainers-postgresql`, `junit-jupiter` → `testcontainers-junit-jupiter`, `kafka` → `testcontainers-kafka`, …). It also moved container classes into `org.testcontainers.<module>` packages and dropped JUnit 4 support.
+- Spring Boot 4.1 already manages Testcontainers ***2.0.5***, so keeping a 1.x `testcontainers-bom` import produced a ***mixed classpath***: Boot's 2.x core next to 1.x modules.
+- Fix: the BOM imports `testcontainers-bom` 2.0.5, and every repo's test dependencies and imports were migrated to the 2.x coordinates in the same round of changes.
 
-```xml
-<!-- Testcontainers 2.x renames module artifacts (junit-jupiter/postgresql/kafka/r2dbc no longer managed) — staying on latest 1.x until code migrates -->
-<testcontainers.version>1.21.4</testcontainers.version>
-```
+### <span style="color:hsl(27,80%,58%)">4.3 Shedlock — was held at `5.16.0` (resolved before 2.0.0)</span>
 
-- Testcontainers 2.x is a breaking artifact-coordinate rename: modules like `org.testcontainers:junit-jupiter`, `postgresql`, `kafka`, and `r2dbc` are restructured under different artifact IDs/groupIds.
-- `testcontainers-bom` 2.x would simply stop managing the coordinates every integration test module in this workspace currently imports (unqualified, relying on this BOM).
-- Upgrading the version property alone, without touching every test module's dependency declarations across every repo, would break builds workspace-wide.
-- Staying on latest `1.x` (`1.21.4`) until the module rename is deliberately migrated everywhere at once.
+- The original fear was that 7.x dropped the `shedlock-micrometer` module used by `learning-shedlock`. Verification showed it still ships, so the pin was lifted, and 2.0.0 tracks the latest 7.x (`7.10.1`).
 
-### <span style="color:hsl(27,80%,58%)">4.3 Shedlock — held at `5.16.0`</span>
-
-```xml
-<!-- shedlock 7.x drops net.javacrumbs.shedlock.micrometer + AopMode used by learning-shedlock — hold at 5.16.0 until code migrates -->
-<shedlock.version>5.16.0</shedlock.version>
-```
-
-- Shedlock 7.x removes the `net.javacrumbs.shedlock.micrometer` package and the `AopMode` config option — both actively used by the `learning-shedlock` repo.
-- Bumping this property to 7.x today would break `learning-shedlock`'s compilation the moment it picks up the new BOM version, with no source-compatible substitute available yet.
-- As with Testcontainers, frozen until the dependent code migrates off the removed APIs — then property bump and migration happen in the same change.
-
-**The general pattern:** each comment documents a *specific, verified, reproducible reason* a naive `mvn versions:use-latest-releases` would break something — discovered once so it doesn't need rediscovering. Anyone tempted to "clean up" these pins should first address the underlying blocker (verifier awareness, module rename migration, or removed-API migration) called out in the comment, in the same change.
+**The general pattern:** a pin must carry a *specific, verified, reproducible* reason, and it is lifted in the same change that migrates the dependent code. Before holding anything back, check whether upstream already ships the fix, as Resilience4j did with a Boot 4 starter.
 
 ---
 
@@ -317,7 +296,7 @@ Separately, further down the file:
 <ul>
 
 - **`learning-bom`** (this repo) — declares no parent, packaging `pom`, only a `<dependencyManagement>` block. Never depended on directly by a leaf service.
-- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `1.1.0`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with Java 25 module-system flags) that every leaf repo inherits alongside the dependency versions.
+- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `2.0.0`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with Java 25 module-system flags) that every leaf repo inherits alongside the dependency versions.
 - **Leaf repos** (`llm-text2sql`, `llm-chat`, `llm-rag`, `llm-gateway`, `llm-mcp`, `llm-mcp-gateway`, `llm-deep-agent`, `llm-eval`, `llm-langchain4j`, `llm-OKF`, `learning-kafka`, `learning-graphql`, `learning-axon`, `learning-shedlock`, `learning-reactive`, `learning-utility`, `learning-wiremock`, `learning-testing-mutation`, ...) — each declares `com.org.llm:super-pom` as its Maven `<parent>` and nothing more. Dependencies typically have **no `<version>` tag at all** (see `llm-text2sql/pom.xml`'s `<dependencies>` block for a live example: `spring-boot-starter-web`, `spring-ai-starter-model-anthropic`, etc., all unversioned). Every version resolves transitively: leaf → `super-pom` (parent inheritance) → `learning-bom` (import, merged into `super-pom`'s effective `dependencyManagement`) → the concrete pinned version or platform-BOM entry.
 
 </ul>
@@ -331,11 +310,11 @@ Separately, further down the file:
 flowchart TD
     subgraph BOM["learning-bom  (pom, this repo)"]
         direction TB
-        A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.0<br/>spring-cloud-dependencies 2025.1.2<br/>spring-ai-bom 2.0.0<br/>testcontainers-bom 1.21.4<br/>langchain4j-bom 1.17.1"]
-        A2["Individually managed:<br/>resilience4j 2.3.0 · shedlock 5.16.0<br/>pdfbox 3.0.7 · poi-ooxml 5.5.1 · tess4j 5.19.0<br/>anthropic-java 2.48.0 · avro 1.12.1<br/>confluent 8.3.0 · springdoc 3.0.3 · ..."]
+        A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.1<br/>spring-cloud-dependencies 2025.1.3<br/>spring-ai-bom 2.0.1<br/>testcontainers-bom 2.0.5<br/>resilience4j-bom 2.4.0<br/>langchain4j-bom 1.20.0"]
+        A2["Individually managed:<br/>shedlock 7.10.1<br/>pdfbox 3.0.8 · poi-ooxml 5.5.1 · tess4j 5.20.0<br/>anthropic-java 2.65.0 · avro 1.12.2<br/>confluent 8.3.2 · springdoc 3.1.1 · ..."]
     end
 
-    SP["super-pom  (com.org.llm:super-pom)<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
+    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.1.0 → BOM 2.0.0; llm-* repos still on 1.0.0 → BOM 1.1.4<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
 
     BOM -- "scope=import<br/>(dependencyManagement only, no code)" --> SP
 
@@ -425,42 +404,35 @@ flowchart LR
 
 | BOM                                                   | Version    |
 |-------------------------------------------------------|------------|
-| `org.springframework.boot:spring-boot-dependencies`   | `4.1.0`    |
-| `org.springframework.cloud:spring-cloud-dependencies` | `2025.1.2` |
-| `org.springframework.ai:spring-ai-bom`                | `2.0.0`    |
-| `org.testcontainers:testcontainers-bom`               | `1.21.4`   |
-| `dev.langchain4j:langchain4j-bom`                     | `1.17.1`   |
+| `org.springframework.boot:spring-boot-dependencies`   | `4.1.1`    |
+| `org.springframework.cloud:spring-cloud-dependencies` | `2025.1.3` |
+| `org.springframework.ai:spring-ai-bom`                | `2.0.1`    |
+| `org.testcontainers:testcontainers-bom`               | `2.0.5`    |
+| `dev.langchain4j:langchain4j-bom`                     | `1.20.0`   |
 
 ### <span style="color:hsl(47,80%,50%)">Individually pinned dependencies</span>
 
-| Group / Artifact                                          | Version property                         | Version                |
-|-------------------------------------------------------------|--------------------------------------------|---------------------------|
-| `com.oracle.database.jdbc:ojdbc17`                        | `ojdbc.version`                          | `23.26.2.0.0`          |
-| `io.github.resilience4j:resilience4j-spring-boot3`        | `resilience4j.version`                   | `2.3.0` (held — §4.1)  |
-| `io.github.resilience4j:resilience4j-reactor`             | `resilience4j.version`                   | `2.3.0` (held — §4.1)  |
-| `io.github.resilience4j:resilience4j-circuitbreaker`      | `resilience4j.version`                   | `2.3.0` (held — §4.1)  |
-| `io.github.resilience4j:resilience4j-micrometer`          | `resilience4j.version`                   | `2.3.0` (held — §4.1)  |
-| `io.github.resilience4j:resilience4j-retry`               | `resilience4j.version`                   | `2.3.0` (held — §4.1)  |
-| `io.github.mweirauch:micrometer-jvm-extras`               | `micrometer-jvm-extras.version`          | `0.3.0`                |
-| `io.micrometer:context-propagation`                       | `micrometer-context-propagation.version` | `1.2.1`                |
-| `net.logstash.logback:logstash-logback-encoder`           | `logstash-logback.version`               | `9.0`                  |
-| `net.javacrumbs.shedlock:shedlock-spring`                 | `shedlock.version`                       | `5.16.0` (held — §4.3) |
-| `net.javacrumbs.shedlock:shedlock-provider-jdbc-template` | `shedlock.version`                       | `5.16.0` (held — §4.3) |
-| `net.javacrumbs.shedlock:shedlock-provider-redis-spring`  | `shedlock.version`                       | `5.16.0` (held — §4.3) |
-| `org.apache.pdfbox:pdfbox`                                | `pdfbox.version`                         | `3.0.7`                |
-| `org.apache.poi:poi-ooxml`                                | `poi-ooxml.version`                      | `5.5.1`                |
-| `net.sourceforge.tess4j:tess4j`                           | `tess4j.version`                         | `5.19.0`               |
-| `com.anthropic:anthropic-java`                            | `anthropic-java.version`                 | `2.48.0`               |
-| `org.apache.avro:avro`                                    | `avro.version`                           | `1.12.1`               |
-| `io.confluent:kafka-avro-serializer`                      | `confluent.version`                      | `8.3.0`                |
-| `dev.langchain4j:langchain4j-community-redis`             | `langchain4j-redis.version`              | `1.17.0-beta27`        |
-| `io.swagger.parser.v3:swagger-parser`                     | `swagger-parser.version`                 | `2.1.45`               |
-| `org.springdoc:springdoc-openapi-starter-webflux-ui`      | `springdoc.version`                      | `3.0.3`                |
-| `org.springdoc:springdoc-openapi-starter-webmvc-ui`       | `springdoc.version`                      | `3.0.3`                |
-| `com.google.zxing:core`                                   | `zxing.version`                          | `3.5.4`                |
-| `com.google.zxing:javase`                                 | `zxing.version`                          | `3.5.4`                |
-| `dev.samstevens.totp:totp`                                | `samstevens-totp.version`                | `1.7.1`                |
-| `org.openapitools:jackson-databind-nullable`              | `jackson-databind-nullable.version`      | `0.2.10`               |
+| Group / Artifact | Version property | Version |
+|---|---|---|
+| `com.oracle.database.jdbc:ojdbc17` | `ojdbc.version` | `23.26.3.0.0` |
+| `io.github.resilience4j:resilience4j-bom (import: -spring-boot4, -reactor, -circuitbreaker, -micrometer, -retry, …)` | `resilience4j.version` | `2.4.0` |
+| `de.codecentric:spring-boot-admin-starter-server / -client` | `spring-boot-admin.version` | `4.1.2` |
+| `io.github.mweirauch:micrometer-jvm-extras` | `micrometer-jvm-extras.version` | `0.3.0` |
+| `io.micrometer:context-propagation` | `micrometer-context-propagation.version` | `1.2.1` |
+| `net.logstash.logback:logstash-logback-encoder` | `logstash-logback.version` | `9.0` |
+| `net.javacrumbs.shedlock:shedlock-spring / -provider-jdbc-template / -provider-redis-spring / -micrometer` | `shedlock.version` | `7.10.1` |
+| `org.apache.pdfbox:pdfbox` | `pdfbox.version` | `3.0.8` |
+| `org.apache.poi:poi-ooxml` | `poi-ooxml.version` | `5.5.1` |
+| `net.sourceforge.tess4j:tess4j` | `tess4j.version` | `5.20.0` |
+| `com.anthropic:anthropic-java` | `anthropic-java.version` | `2.65.0` |
+| `org.apache.avro:avro` | `avro.version` | `1.12.2` |
+| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.3.2` |
+| `dev.langchain4j:langchain4j-community-redis` | `langchain4j-redis.version` | `1.20.0-beta30` |
+| `io.swagger.parser.v3:swagger-parser` | `swagger-parser.version` | `2.1.48` |
+| `org.springdoc:springdoc-openapi-starter-webflux-ui / -webmvc-ui` | `springdoc.version` | `3.1.1` |
+| `com.google.zxing:core / javase` | `zxing.version` | `3.5.4` |
+| `dev.samstevens.totp:totp / totp-spring-boot-starter` | `samstevens-totp.version` | `1.7.1` |
+| `org.openapitools:jackson-databind-nullable` | `jackson-databind-nullable.version` | `0.2.11` |
 
 ---
 
@@ -479,3 +451,4 @@ flowchart LR
 
 - `super-pom` pins the consumed version explicitly via `<learning-bom.version>` — a new `learning-bom` release never affects any leaf repo until `super-pom` is deliberately updated to point at it.
 - No "floating latest" resolution anywhere in this chain.
+- ***2.0.0 (Sept 2026) is a major bump under this policy***: the Testcontainers 1.x module coordinates (`org.testcontainers:postgresql`, `junit-jupiter`, …) are no longer managed (2.x `testcontainers-*` names instead), and the individual Resilience4j entries were replaced by the `resilience4j-bom` import (which adds `resilience4j-spring-boot4`).
