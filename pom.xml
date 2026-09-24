@@ -5,7 +5,7 @@
 
     <groupId>com.org.learning</groupId>
     <artifactId>learning-bom</artifactId>
-    <version>2.1.0</version>
+    <version>3.0.0</version>
 
     <packaging>pom</packaging>
     <name>LLM :: BOM</name>
@@ -16,7 +16,6 @@
         <spring-cloud.version>2025.1.3</spring-cloud.version>
         <spring-boot-admin.version>4.1.2</spring-boot-admin.version>
         <spring-ai.version>2.0.1</spring-ai.version>
-        <resilience4j.version>2.4.0</resilience4j.version>
         <logstash-logback.version>9.0</logstash-logback.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <pdfbox.version>3.0.8</pdfbox.version>
@@ -87,20 +86,10 @@
                 <artifactId>ojdbc17</artifactId>
                 <version>${ojdbc.version}</version>
             </dependency>
-            <!-- Resilience4j: resilience4j-bom manages -reactor, -micrometer, -circuitbreaker, ... and the
-                 boot3 starter, but (as of 2.4.0) NOT resilience4j-spring-boot4 — so that one is explicit. -->
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-spring-boot4</artifactId>
-                <version>${resilience4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-bom</artifactId>
-                <version>${resilience4j.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+            <!-- Resilience4j is deliberately NOT managed here: spring-cloud-dependencies (imported above)
+                 already imports resilience4j-bom 2.3.0, and Spring Cloud CircuitBreaker 5.0.x is built on
+                 resilience4j-spring-boot3. 2.4.0's boot3 starter refuses Boot 4 and its boot4 starter would
+                 split the line, so every Boot 4 service uses resilience4j-spring-boot3 at Spring Cloud's version. -->
 
             <dependency>
                 <groupId>io.github.mweirauch</groupId>

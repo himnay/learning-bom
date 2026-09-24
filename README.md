@@ -14,7 +14,7 @@
 8. 🔨 [8. Quick reference — all managed dependencies](#8-quick-reference--all-managed-dependencies)
 9. 🔨 [9. Versioning policy for this BOM itself](#9-versioning-policy-for-this-bom-itself)
 
-**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `2.1.0`
+**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.0.0`
 
 - **What it is:** a `pom`-packaged Maven **Bill of Materials (BOM)** — declares *versions* only. No Java sources, no jar, never on anyone's classpath directly.
 - **Its one job:** `import`-scoped into the `dependencyManagement` of one other POM — [`super-pom`](../super-pom).
@@ -139,8 +139,8 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 ```xml
 <!-- ===== Resilience4j ===== -->
 ```
-- The whole Resilience4j line is managed at `${resilience4j.version}` (`2.4.0`): `io.github.resilience4j:resilience4j-bom` is imported for `-reactor`, `-circuitbreaker`, `-micrometer`, `-retry`, and the rest, and the Boot 4 starter ***`resilience4j-spring-boot4`*** is an explicit entry because the upstream BOM omits it (as of 2.4.0).
-- Services on Spring Boot 4 must use `resilience4j-spring-boot4`. The `-spring-boot3` starter runs a verifier that refuses Boot 4 at startup (see §4.1).
+- Resilience4j is ***not managed here***: `spring-cloud-dependencies` imports `resilience4j-bom` 2.3.0 and governs the whole line (`-spring-boot3`, `-reactor`, `-circuitbreaker`, `-micrometer`, …) — see §4.1.
+- Services on Spring Boot 4 use `resilience4j-spring-boot3` at that version. (Only 2.4.0's boot3 starter has the Boot-4-refusing verifier.)
 
 ### <span style="color:hsl(125,80%,58%)">3.4 Observability</span>
 
@@ -265,14 +265,17 @@ Separately, further down the file:
 <a id="4-deliberately-held-back-versions--and-why"></a>
 ## <span style="color:hsl(335,80%,58%)">4. 🏷️ Deliberately held-back versions — and why</span>
 
-- ***As of 2.0.0 (Sept 2026) nothing is held back.*** Every property is on the latest GA release. The three historical pins below were resolved by migrating the code, not by ignoring the blocker. They are kept as a record of *why* each upgrade needed a code change.
+- ***As of 3.0.0 (Sept 2026) one line is held — by Spring Cloud, not by this BOM.*** Resilience4j follows `spring-cloud-dependencies` (2.3.0) until Spring Cloud CircuitBreaker moves off `resilience4j-spring-boot3` (§4.1). Every other property is on the latest GA. The historical pins below are kept as a record of *why* each upgrade needed (or still needs) a code change.
 
-### <span style="color:hsl(112,80%,58%)">4.1 Resilience4j — was held at `2.3.0` (resolved in 2.0.0)</span>
+### <span style="color:hsl(112,80%,58%)">4.1 Resilience4j — still at `2.3.0`, governed by Spring Cloud (re-checked Sept 2026)</span>
 
 - 2.4.0 added a `SpringBoot3Verifier` to `resilience4j-spring-boot3` that fails fast when it loads under Spring Boot 4.
 - The same release ships a dedicated ***`resilience4j-spring-boot4`*** starter, so the verifier only fires when you use the wrong starter on Boot 4.
-- Fix: the BOM imports `resilience4j-bom` 2.4.0, and every Boot 4 service depends on `resilience4j-spring-boot4`.
-- Catch: `resilience4j-bom` 2.4.0 does ***not*** list `resilience4j-spring-boot4` (only the boot3 starter), so the BOM manages it explicitly since ***2.1.0***. On 2.0.0 a versionless `resilience4j-spring-boot4` fails with "dependencies.dependency.version ... is missing".
+- Why it can't simply move to 2.4.0 + the boot4 starter (tried in 2.0.0/2.1.0, reverted in 3.0.0):
+  - ***Spring Cloud CircuitBreaker 5.0.3*** (latest, train 2025.1.3) depends on `resilience4j-spring-boot3`. Forcing 2.4.0 makes its verifier kill every Spring Cloud Gateway / CircuitBreaker app at startup ("only compatible with Spring Boot 3.x"). The verifier has no off-switch.
+  - `spring-cloud-dependencies` is imported first and already imports `resilience4j-bom` 2.3.0 — first import wins, so a later `resilience4j-bom` 2.4.0 import is silently ignored (2.0.0's "2.4.0" never took effect).
+  - `resilience4j-bom` 2.4.0 does not even list `resilience4j-spring-boot4`; managing it explicitly (2.1.0) produced a boot4 2.4.0 starter on 2.3.0 core modules — a split line.
+- ***Rule:*** Boot 4 services use `resilience4j-spring-boot3` (versionless → Spring Cloud's 2.3.0, which has no verifier). Re-check when a Spring Cloud train ships CircuitBreaker on `resilience4j-spring-boot4`.
 
 ### <span style="color:hsl(250,80%,58%)">4.2 Testcontainers — was held at `1.21.4` (resolved in 2.0.0)</span>
 
@@ -297,7 +300,7 @@ Separately, further down the file:
 <ul>
 
 - **`learning-bom`** (this repo) — declares no parent, packaging `pom`, only a `<dependencyManagement>` block. Never depended on directly by a leaf service.
-- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `2.1.0`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with Java 25 module-system flags) that every leaf repo inherits alongside the dependency versions.
+- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.0.0`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with Java 25 module-system flags) that every leaf repo inherits alongside the dependency versions.
 - **Leaf repos** (`llm-text2sql`, `llm-chat`, `llm-rag`, `llm-gateway`, `llm-mcp`, `llm-mcp-gateway`, `llm-deep-agent`, `llm-eval`, `llm-langchain4j`, `llm-OKF`, `learning-kafka`, `learning-graphql`, `learning-axon`, `learning-shedlock`, `learning-reactive`, `learning-utility`, `learning-wiremock`, `learning-testing-mutation`, ...) — each declares `com.org.llm:super-pom` as its Maven `<parent>` and nothing more. Dependencies typically have **no `<version>` tag at all** (see `llm-text2sql/pom.xml`'s `<dependencies>` block for a live example: `spring-boot-starter-web`, `spring-ai-starter-model-anthropic`, etc., all unversioned). Every version resolves transitively: leaf → `super-pom` (parent inheritance) → `learning-bom` (import, merged into `super-pom`'s effective `dependencyManagement`) → the concrete pinned version or platform-BOM entry.
 
 </ul>
@@ -311,11 +314,11 @@ Separately, further down the file:
 flowchart TD
     subgraph BOM["learning-bom  (pom, this repo)"]
         direction TB
-        A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.1<br/>spring-cloud-dependencies 2025.1.3<br/>spring-ai-bom 2.0.1<br/>testcontainers-bom 2.0.5<br/>resilience4j-bom 2.4.0<br/>langchain4j-bom 1.20.0"]
+        A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.1<br/>spring-cloud-dependencies 2025.1.3<br/>spring-ai-bom 2.0.1<br/>testcontainers-bom 2.0.5<br/>(resilience4j via spring-cloud: 2.3.0)<br/>langchain4j-bom 1.20.0"]
         A2["Individually managed:<br/>shedlock 7.10.1<br/>pdfbox 3.0.8 · poi-ooxml 5.5.1 · tess4j 5.20.0<br/>anthropic-java 2.65.0 · avro 1.12.2<br/>confluent 8.3.2 · springdoc 3.1.1 · ..."]
     end
 
-    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.1.1 → BOM 2.1.0; llm-* repos still on 1.0.0 → BOM 1.1.4<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
+    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.1.2 → BOM 3.0.0; llm-* repos still on 1.0.0 → BOM 1.1.4<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
 
     BOM -- "scope=import<br/>(dependencyManagement only, no code)" --> SP
 
@@ -416,8 +419,7 @@ flowchart LR
 | Group / Artifact | Version property | Version |
 |---|---|---|
 | `com.oracle.database.jdbc:ojdbc17` | `ojdbc.version` | `23.26.3.0.0` |
-| `io.github.resilience4j:resilience4j-spring-boot4` | `resilience4j.version` | `2.4.0` |
-| `io.github.resilience4j:resilience4j-bom (import: -reactor, -circuitbreaker, -micrometer, -retry, …)` | `resilience4j.version` | `2.4.0` |
+| `io.github.resilience4j:*` (via `spring-cloud-dependencies` → `resilience4j-bom`) | — (Spring Cloud) | `2.3.0` |
 | `de.codecentric:spring-boot-admin-starter-server / -client` | `spring-boot-admin.version` | `4.1.2` |
 | `io.github.mweirauch:micrometer-jvm-extras` | `micrometer-jvm-extras.version` | `0.3.0` |
 | `io.micrometer:context-propagation` | `micrometer-context-propagation.version` | `1.2.1` |
@@ -454,4 +456,5 @@ flowchart LR
 - `super-pom` pins the consumed version explicitly via `<learning-bom.version>` — a new `learning-bom` release never affects any leaf repo until `super-pom` is deliberately updated to point at it.
 - No "floating latest" resolution anywhere in this chain.
 - ***2.0.0 (Sept 2026) is a major bump under this policy***: the Testcontainers 1.x module coordinates (`org.testcontainers:postgresql`, `junit-jupiter`, …) are no longer managed (2.x `testcontainers-*` names instead), and the individual Resilience4j entries were replaced by the `resilience4j-bom` import.
-- ***2.1.0 (Sept 2026) is a minor bump***: adds the explicit `resilience4j-spring-boot4` entry that 2.0.0 wrongly assumed `resilience4j-bom` provided.
+- ***2.1.0 (Sept 2026, superseded)***: added an explicit `resilience4j-spring-boot4` entry — which split the line (see §4.1).
+- ***3.0.0 (Sept 2026) is a major bump***: removes the `resilience4j-bom` import, the `resilience4j.version` property and the `resilience4j-spring-boot4` entry; Resilience4j now follows Spring Cloud (2.3.0). Use `resilience4j-spring-boot3`.
