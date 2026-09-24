@@ -5,7 +5,7 @@
 
     <groupId>com.org.learning</groupId>
     <artifactId>learning-bom</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 
     <packaging>pom</packaging>
     <name>LLM :: BOM</name>
@@ -87,7 +87,13 @@
                 <artifactId>ojdbc17</artifactId>
                 <version>${ojdbc.version}</version>
             </dependency>
-            <!-- Resilience4j BOM — manages resilience4j-spring-boot4 (Boot 4 starter), -reactor, -micrometer, ... -->
+            <!-- Resilience4j: resilience4j-bom manages -reactor, -micrometer, -circuitbreaker, ... and the
+                 boot3 starter, but (as of 2.4.0) NOT resilience4j-spring-boot4 — so that one is explicit. -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-spring-boot4</artifactId>
+                <version>${resilience4j.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.github.resilience4j</groupId>
                 <artifactId>resilience4j-bom</artifactId>
