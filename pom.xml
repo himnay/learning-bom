@@ -5,7 +5,7 @@
 
     <groupId>com.org.learning</groupId>
     <artifactId>learning-bom</artifactId>
-    <version>3.0.0</version>
+    <version>3.0.1</version>
 
     <packaging>pom</packaging>
     <name>LLM :: BOM</name>
@@ -14,7 +14,7 @@
     <properties>
         <spring-boot.version>4.1.1</spring-boot.version>
         <spring-cloud.version>2025.1.3</spring-cloud.version>
-        <spring-boot-admin.version>4.1.2</spring-boot-admin.version>
+        <spring-boot-admin.version>4.1.3</spring-boot-admin.version>
         <spring-ai.version>2.0.1</spring-ai.version>
         <logstash-logback.version>9.0</logstash-logback.version>
         <testcontainers.version>2.0.5</testcontainers.version>
@@ -26,7 +26,7 @@
         <micrometer-jvm-extras.version>0.3.0</micrometer-jvm-extras.version>
         <micrometer-context-propagation.version>1.2.1</micrometer-context-propagation.version>
         <shedlock.version>7.10.1</shedlock.version>
-        <langchain4j-bom.version>1.20.0</langchain4j-bom.version>
+        <langchain4j-bom.version>1.20.1</langchain4j-bom.version>
         <avro.version>1.12.2</avro.version>
         <confluent.version>8.3.2</confluent.version>
         <langchain4j-redis.version>1.20.0-beta30</langchain4j-redis.version>
