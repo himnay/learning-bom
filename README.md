@@ -17,7 +17,7 @@
 **groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.0.1`
 
 - **What it is:** a `pom`-packaged Maven **Bill of Materials (BOM)** — declares *versions* only. No Java sources, no jar, never on anyone's classpath directly.
-- **Its one job:** `import`-scoped into the `dependencyManagement` of one other POM — [`super-pom`](../super-pom).
+- **Its one job:** `import`-scoped into the `dependencyManagement` of one other POM — [`super-pom`](https://github.com/himnay/super-pom).
 - **Effect:** every leaf service in this developer's `~/projects` workspace (`llm-text2sql`, `llm-chat`, `llm-rag`, `llm-gateway`, `llm-mcp`, `llm-mcp-gateway`, `llm-deep-agent`, `llm-eval`, `llm-langchain4j`, `llm-OKF`, `learning-kafka`, `learning-graphql`, `learning-axon`, `learning-shedlock`, `learning-reactive`, `learning-utility`, `learning-wiremock`, `learning-testing-mutation`, and others) resolves *exactly the same* version of Spring Boot, Spring Cloud, Spring AI, Resilience4j, Testcontainers, PDFBox, POI, Tesseract, the Anthropic Java SDK, LangChain4j, Avro, Confluent's Kafka tooling, Shedlock, and a dozen smaller libraries.
 - **Zero repetition:** none of those repos ever write a `<version>` tag themselves.
 
