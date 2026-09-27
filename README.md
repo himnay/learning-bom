@@ -148,7 +148,7 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 <!-- ===== Observability ===== -->
 ```
 - `io.github.mweirauch:micrometer-jvm-extras` (`${micrometer-jvm-extras.version}` = `0.3.0`) — adds JVM metrics (GC, classloading, thread pools) beyond core Micrometer.
-- `io.micrometer:context-propagation` (`${micrometer-context-propagation.version}` = `1.2.1`) — carries `ThreadLocal`/`Reactor Context` state (MDC, tracing spans) across async and reactive boundaries.
+- `io.micrometer:context-propagation` (`${micrometer-context-propagation.version}` = `1.2.1`) — carries [`ThreadLocal`][ThreadLocal]/`Reactor Context` state (MDC, tracing spans) across async and reactive boundaries.
 
 ### <span style="color:hsl(262,80%,58%)">3.5 Structured logging</span>
 
@@ -163,7 +163,7 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 <!-- ===== Distributed scheduling ===== -->
 ```
 - `net.javacrumbs.shedlock:shedlock-spring`, `shedlock-provider-jdbc-template`, and `shedlock-provider-redis-spring`, plus `shedlock-micrometer`, all at `${shedlock.version}` (`7.10.1`).
-- Shedlock prevents the same `@Scheduled` job from running concurrently on more than one instance of a horizontally-scaled service, using a JDBC row lock or Redis lock as the distributed mutex, depending on the provider chosen.
+- Shedlock prevents the same [`@Scheduled`][Scheduled] job from running concurrently on more than one instance of a horizontally-scaled service, using a JDBC row lock or Redis lock as the distributed mutex, depending on the provider chosen.
 
 ### <span style="color:hsl(177,80%,58%)">3.7 Document processing</span>
 
@@ -459,3 +459,8 @@ flowchart LR
 - ***2.1.0 (Sept 2026, superseded)***: added an explicit `resilience4j-spring-boot4` entry — which split the line (see §4.1).
 - ***3.0.0 (Sept 2026) is a major bump***: removes the `resilience4j-bom` import, the `resilience4j.version` property and the `resilience4j-spring-boot4` entry; Resilience4j now follows Spring Cloud (2.3.0). Use `resilience4j-spring-boot3`.
 - ***3.0.1 (Sept 2026) is a patch bump***: Spring Boot Admin 4.1.3 and LangChain4j 1.20.1 (core BOM; `langchain4j-community-redis` stays on `1.20.0-beta30`, still its latest).
+
+<!-- Library classes mentioned above, linked to their source at the versions this project builds with. -->
+
+[Scheduled]: https://github.com/spring-projects/spring-framework/blob/v7.0.9/spring-context/src/main/java/org/springframework/scheduling/annotation/Scheduled.java
+[ThreadLocal]: https://github.com/openjdk/jdk/blob/jdk-25-ga/src/java.base/share/classes/java/lang/ThreadLocal.java
