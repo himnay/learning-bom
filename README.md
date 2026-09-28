@@ -4,15 +4,15 @@
 
 ## <span style="color:hsl(190,80%,58%)">Table of contents</span>
 
-1. 🔨 [1. The problem: dependency version sprawl across a multi-repo organization](#1-the-problem-dependency-version-sprawl-across-a-multi-repo-organization)
-2. 🔨 [2. How Maven's `<dependencyManagement>` + `scope=import` mechanism actually works](#2-how-mavens-dependencymanagement--scopeimport-mechanism-actually-works)
-3. 🔨 [3. How this BOM is structured, section by section](#3-how-this-bom-is-structured-section-by-section)
-4. 🏷️ [4. Deliberately held-back versions — and why](#4-deliberately-held-back-versions--and-why)
-5. 🔨 [5. Position in the workspace's three-tier dependency-management chain](#5-position-in-the-workspaces-three-tier-dependency-management-chain)
-6. 🚀 [6. How to import (already wired — service repos should not repeat this)](#6-how-to-import-already-wired--service-repos-should-not-repeat-this)
-7. 🔨 [7. How to add a new managed dependency](#7-how-to-add-a-new-managed-dependency)
-8. 🔨 [8. Quick reference — all managed dependencies](#8-quick-reference--all-managed-dependencies)
-9. 🔨 [9. Versioning policy for this BOM itself](#9-versioning-policy-for-this-bom-itself)
+1. 🔨 [The problem: dependency version sprawl across a multi-repo organization](#1-the-problem-dependency-version-sprawl-across-a-multi-repo-organization)
+2. 🔨 [How Maven's `<dependencyManagement>` + `scope=import` mechanism actually works](#2-how-mavens-dependencymanagement--scopeimport-mechanism-actually-works)
+3. 🔨 [How this BOM is structured, section by section](#3-how-this-bom-is-structured-section-by-section)
+4. 🏷️ [Deliberately held-back versions — and why](#4-deliberately-held-back-versions--and-why)
+5. 🔨 [Position in the workspace's three-tier dependency-management chain](#5-position-in-the-workspaces-three-tier-dependency-management-chain)
+6. 🚀 [How to import (already wired — service repos should not repeat this)](#6-how-to-import-already-wired--service-repos-should-not-repeat-this)
+7. 🔨 [How to add a new managed dependency](#7-how-to-add-a-new-managed-dependency)
+8. 🔨 [Quick reference — all managed dependencies](#8-quick-reference--all-managed-dependencies)
+9. 🔨 [Versioning policy for this BOM itself](#9-versioning-policy-for-this-bom-itself)
 
 **groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.0.1`
 
@@ -93,7 +93,7 @@ A plain `<dependency>` entry inside `<dependencyManagement>` can point at anothe
 - This tells Maven: *"fetch `spring-boot-dependencies:4.1.1`'s own `<dependencyManagement>` block wholesale, and splice all of its entries into mine, as if I typed them all by hand."*
 - Two properties matter a great deal in practice:
 
-1. **Additive/textual, not inherited-by-reference.** The importing POM's own entries merge with everything imported. Order matters: if two imported BOMs (or an import and a local entry) both manage the same `groupId:artifactId`, **the first declaration encountered wins** — later ones are silently ignored. This is why this BOM's platform-BOM block is annotated `<!-- import order matters: first declaration wins -->` and always imports `spring-boot-dependencies` before `spring-cloud-dependencies`, `spring-ai-bom`, and `testcontainers-bom` — Spring Cloud's and Spring AI's BOMs sometimes manage a coordinate (e.g. Jackson, Netty) that Spring Boot also manages, and the intent is for Spring Boot's own mutually-tested set to win.
+1. **Additive/textual, not inherited-by-reference.** The importing POM's own entries merge with everything imported. Order matters between imports: if two imported BOMs both manage the same `groupId:artifactId`, **the first import wins** — later ones are silently ignored. An entry declared directly in the importing POM's `<dependencyManagement>` beats every import, wherever it appears in the file. This is why this BOM always imports `spring-boot-dependencies` before `spring-cloud-dependencies`, `spring-ai-bom`, and `testcontainers-bom` — Spring Cloud's and Spring AI's BOMs sometimes manage a coordinate (e.g. Jackson, Netty) that Spring Boot also manages, and the intent is for Spring Boot's own mutually-tested set to win.
 2. **`scope=import` only works inside `<dependencyManagement>`, on a `<type>pom</type>` dependency.** It's a compile-time signal to Maven's model builder, not a runtime classpath scope like `compile`/`runtime` — the effective POM behaves as though those entries were pasted in directly.
 
 ### <span style="color:hsl(157,80%,58%)">2.3 Why this matters for a 3-tier chain</span>
@@ -107,13 +107,9 @@ A plain `<dependency>` entry inside `<dependencyManagement>` can point at anothe
 <a id="3-how-this-bom-is-structured-section-by-section"></a>
 ## <span style="color:hsl(295,80%,58%)">3. 🔨 How this BOM is structured, section by section</span>
 
-The full `pom.xml` is one `<dependencyManagement>` block with clearly commented sections. Walkthrough below, matching the actual file.
+The full `pom.xml` is a `<properties>` block of versions plus one `<dependencyManagement>` block. It has no section comments; the walkthrough below groups its entries by area.
 
 ### <span style="color:hsl(72,80%,58%)">3.1 Platform BOMs (imported first, in a deliberate order)</span>
-
-```xml
-<!-- ===== Platform BOMs (import order matters: first declaration wins) ===== -->
-```
 
 | Imported BOM                                          | Property                 | Version    |
 |-------------------------------------------------------|--------------------------|------------|
@@ -123,53 +119,36 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 | `org.testcontainers:testcontainers-bom`               | `testcontainers.version` | `2.0.5`    |
 
 - These four are themselves upstream-maintained BOMs, each managing dozens to hundreds of their own artifacts (e.g. `spring-boot-dependencies` manages `spring-boot-starter-web`, `jackson-databind`, `tomcat-embed-core`, and hundreds more).
-- `spring-cloud-dependencies` manages Spring Cloud Gateway/Config/OpenFeign/etc.; `spring-ai-bom` manages every `spring-ai-*-spring-boot-starter` and underlying model-client artifacts; `testcontainers-bom` manages every module (`postgresql`, `kafka`, `junit-jupiter`).
+- `spring-cloud-dependencies` manages Spring Cloud Gateway/Config/OpenFeign/etc.; `spring-ai-bom` manages every `spring-ai-starter-*` and the underlying model-client artifacts; `testcontainers-bom` manages every module (`testcontainers-postgresql`, `testcontainers-kafka`, `testcontainers-junit-jupiter`, ...).
 - Importing them here, in this order, gives every downstream repo a mutually-tested, internally-consistent framework version set — `learning-bom` never needs to know or re-declare their individual member artifacts.
 
 ### <span style="color:hsl(210,80%,58%)">3.2 Oracle JDBC</span>
 
-```xml
-<!-- ===== Oracle JDBC ===== -->
-```
 - `com.oracle.database.jdbc:ojdbc17` at `${ojdbc.version}` (`23.26.3.0.0`).
 - Oracle doesn't publish a BOM covering this driver conveniently, so it's pinned directly as an individually-managed artifact.
 
 ### <span style="color:hsl(347,80%,58%)">3.3 Resilience4j</span>
 
-```xml
-<!-- ===== Resilience4j ===== -->
-```
 - Resilience4j is ***not managed here***: `spring-cloud-dependencies` imports `resilience4j-bom` 2.3.0 and governs the whole line (`-spring-boot3`, `-reactor`, `-circuitbreaker`, `-micrometer`, …) — see §4.1.
 - Services on Spring Boot 4 use `resilience4j-spring-boot3` at that version. (Only 2.4.0's boot3 starter has the Boot-4-refusing verifier.)
 
 ### <span style="color:hsl(125,80%,58%)">3.4 Observability</span>
 
-```xml
-<!-- ===== Observability ===== -->
-```
 - `io.github.mweirauch:micrometer-jvm-extras` (`${micrometer-jvm-extras.version}` = `0.3.0`) — adds JVM metrics (GC, classloading, thread pools) beyond core Micrometer.
 - `io.micrometer:context-propagation` (`${micrometer-context-propagation.version}` = `1.2.1`) — carries [`ThreadLocal`][ThreadLocal]/`Reactor Context` state (MDC, tracing spans) across async and reactive boundaries.
+- `de.codecentric:spring-boot-admin-starter-server` and `spring-boot-admin-starter-client` (`${spring-boot-admin.version}` = `4.1.3`) — an admin UI (server) that monitors registered Spring Boot apps (clients) through their actuator endpoints.
 
 ### <span style="color:hsl(262,80%,58%)">3.5 Structured logging</span>
 
-```xml
-<!-- ===== Structured logging ===== -->
-```
 - `net.logstash.logback:logstash-logback-encoder` (`${logstash-logback.version}` = `9.0`) — emits JSON-structured log lines consumable by a log aggregator (ELK/Loki/etc.) instead of plain-text log4j-style formatting.
 
 ### <span style="color:hsl(40,80%,58%)">3.6 Distributed scheduling</span>
 
-```xml
-<!-- ===== Distributed scheduling ===== -->
-```
 - `net.javacrumbs.shedlock:shedlock-spring`, `shedlock-provider-jdbc-template`, and `shedlock-provider-redis-spring`, plus `shedlock-micrometer`, all at `${shedlock.version}` (`7.10.1`).
 - Shedlock prevents the same [`@Scheduled`][Scheduled] job from running concurrently on more than one instance of a horizontally-scaled service, using a JDBC row lock or Redis lock as the distributed mutex, depending on the provider chosen.
 
 ### <span style="color:hsl(177,80%,58%)">3.7 Document processing</span>
 
-```xml
-<!-- ===== Document processing ===== -->
-```
 | Artifact                        | Property            | Version  | Purpose                                              |
 |----------------------------------|---------------------|----------|-------------------------------------------------------|
 | `org.apache.pdfbox:pdfbox`      | `pdfbox.version`    | `3.0.8`  | Read/write/manipulate PDF documents                  |
@@ -180,24 +159,17 @@ The full `pom.xml` is one `<dependencyManagement>` block with clearly commented 
 
 ### <span style="color:hsl(315,80%,58%)">3.8 AI SDKs</span>
 
-```xml
-<!-- ===== AI SDKs ===== -->
-```
 - `com.anthropic:anthropic-java` at `${anthropic-java.version}` (`2.65.0`) — the official Anthropic Java SDK.
 - Used directly (outside Spring AI's abstraction) wherever a repo needs lower-level access to the Claude Messages API, streaming, or tool-use primitives that Spring AI's starter doesn't expose.
 
 ### <span style="color:hsl(92,80%,58%)">3.9 langchain4j</span>
 
-```xml
-<!-- ===== langchain4j ===== -->
-```
 - `dev.langchain4j:langchain4j-bom` is imported (`scope=import`, like the platform BOMs in §3.1) at `${langchain4j-bom.version}` (`1.20.1`), managing the core LangChain4j modules (chains, memory, embedding stores, tool integration) as one coordinated set.
 
 Separately, further down the file:
 
 ```xml
 <dependency>
-    <!-- Community modules live on their own (beta) version track, outside langchain4j-bom. -->
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-community-redis</artifactId>
     <version>${langchain4j-redis.version}</version>
@@ -210,9 +182,6 @@ Separately, further down the file:
 
 ### <span style="color:hsl(230,80%,58%)">3.10 Kafka / Avro ecosystem</span>
 
-```xml
-<!-- Kafka / Avro ecosystem -->
-```
 | Artifact                             | Property            | Version  |
 |---------------------------------------|---------------------|----------|
 | `org.apache.avro:avro`               | `avro.version`      | `1.12.2` |
@@ -223,39 +192,24 @@ Separately, further down the file:
 
 ### <span style="color:hsl(7,80%,58%)">3.11 Test utilities</span>
 
-```xml
-<!-- ===== Test utilities ===== -->
-```
 - `io.swagger.parser.v3:swagger-parser` (`${swagger-parser.version}` = `2.1.48`) — parses/validates OpenAPI/Swagger specification documents, used in tests asserting a service's generated OpenAPI spec is well-formed or matches a contract.
 
 ### <span style="color:hsl(145,80%,58%)">3.12 OpenAPI / Swagger UI</span>
 
-```xml
-<!-- ===== OpenAPI / Swagger UI ===== -->
-```
 - `org.springdoc:springdoc-openapi-starter-webflux-ui` and `org.springdoc:springdoc-openapi-starter-webmvc-ui`, both at `${springdoc.version}` (`3.1.1`).
 - Generates OpenAPI 3 documentation and a Swagger UI page from Spring MVC or WebFlux controller annotations, depending on which stack a repo uses.
 
 ### <span style="color:hsl(282,80%,58%)">3.13 QR code processing</span>
 
-```xml
-<!-- ===== QR code processing ===== -->
-```
 - `com.google.zxing:core` and `com.google.zxing:javase`, both at `${zxing.version}` (`3.5.4`).
 - Generate/decode QR codes (and other barcode formats); `javase` layers `java.awt`/ImageIO bindings on top of the platform-independent `core`.
 
 ### <span style="color:hsl(60,80%,50%)">3.14 TOTP</span>
 
-```xml
-<!-- ===== TOTP ===== -->
-```
-- `dev.samstevens.totp:totp` at `${samstevens-totp.version}` (`1.7.1`) — implements RFC 6238 Time-based One-Time Password generation/validation, used for 2FA/MFA flows.
+- `dev.samstevens.totp:totp` and `totp-spring-boot-starter`, both at `${samstevens-totp.version}` (`1.7.1`) — implement RFC 6238 Time-based One-Time Password generation/validation, used for 2FA/MFA flows.
 
 ### <span style="color:hsl(197,80%,58%)">3.15 `openapi-generator` "spring" template runtime dependency</span>
 
-```xml
-<!-- ===== openapi-generator "spring" template runtime dependency ===== -->
-```
 - `org.openapitools:jackson-databind-nullable` at `${jackson-databind-nullable.version}` (`0.2.11`).
 - Not a library any repo depends on deliberately — it's a small runtime shim the `openapi-generator-maven-plugin`'s `spring` template (configured in `super-pom`) emits references to in generated model classes, to distinguish "field absent" from "field explicitly set to `null`" in JSON.
 - Pinned here so generated code always compiles against a known-good version regardless of which repo runs the generator.
@@ -300,7 +254,7 @@ Separately, further down the file:
 <ul>
 
 - **`learning-bom`** (this repo) — declares no parent, packaging `pom`, only a `<dependencyManagement>` block. Never depended on directly by a leaf service.
-- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.0.1`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with Java 25 module-system flags) that every leaf repo inherits alongside the dependency versions.
+- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.0.1`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also sets the Java baseline (`java.version` 27 since super-pom 1.2.0, 25 before) and centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with an `--add-opens` flag) that every leaf repo inherits alongside the dependency versions.
 - **Leaf repos** (`llm-text2sql`, `llm-chat`, `llm-rag`, `llm-gateway`, `llm-mcp`, `llm-mcp-gateway`, `llm-deep-agent`, `llm-eval`, `llm-langchain4j`, `llm-OKF`, `learning-kafka`, `learning-graphql`, `learning-axon`, `learning-shedlock`, `learning-reactive`, `learning-utility`, `learning-wiremock`, `learning-testing-mutation`, ...) — each declares `com.org.llm:super-pom` as its Maven `<parent>` and nothing more. Dependencies typically have **no `<version>` tag at all** (see `llm-text2sql/pom.xml`'s `<dependencies>` block for a live example: `spring-boot-starter-web`, `spring-ai-starter-model-anthropic`, etc., all unversioned). Every version resolves transitively: leaf → `super-pom` (parent inheritance) → `learning-bom` (import, merged into `super-pom`'s effective `dependencyManagement`) → the concrete pinned version or platform-BOM entry.
 
 </ul>
@@ -318,7 +272,7 @@ flowchart TD
         A2["Individually managed:<br/>shedlock 7.10.1<br/>pdfbox 3.0.8 · poi-ooxml 5.5.1 · tess4j 5.20.0<br/>anthropic-java 2.65.0 · avro 1.12.2<br/>confluent 8.3.2 · springdoc 3.1.1 · ..."]
     end
 
-    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.1.3 → BOM 3.0.1; llm-* repos still on 1.0.0 → BOM 1.1.4<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
+    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.2.0 (Java 27), llm-* repos on 1.1.4 (Java 25)<br/>both import BOM 3.0.1<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
 
     BOM -- "scope=import<br/>(dependencyManagement only, no code)" --> SP
 
@@ -340,7 +294,7 @@ flowchart TD
 flowchart LR
     BOM(("learning-bom"))
 
-    BOM --> WEB["Web / Framework<br/>spring-boot-dependencies<br/>spring-cloud-dependencies<br/>springdoc-openapi (webflux/webmvc)<br/>swagger-parser"]
+    BOM --> WEB["Web / Framework<br/>spring-boot-dependencies<br/>spring-cloud-dependencies<br/>springdoc-openapi (webflux/webmvc)<br/>swagger-parser<br/>spring-boot-admin (server/client)"]
 
     BOM --> AI["AI / LLM<br/>spring-ai-bom<br/>anthropic-java<br/>langchain4j-bom<br/>langchain4j-community-redis"]
 
@@ -348,7 +302,7 @@ flowchart LR
 
     BOM --> MSG["Messaging<br/>avro<br/>kafka-avro-serializer (Confluent)"]
 
-    BOM --> RESIL["Resilience / Ops<br/>resilience4j (5 modules)<br/>shedlock (3 providers)<br/>micrometer-jvm-extras<br/>micrometer context-propagation<br/>logstash-logback-encoder"]
+    BOM --> RESIL["Resilience / Ops<br/>resilience4j (via spring-cloud-dependencies)<br/>shedlock (spring, jdbc + redis providers, micrometer)<br/>micrometer-jvm-extras<br/>micrometer context-propagation<br/>logstash-logback-encoder"]
 
     BOM --> TEST["Testing<br/>testcontainers-bom"]
 
@@ -385,7 +339,7 @@ flowchart LR
 ## <span style="color:hsl(355,80%,58%)">7. 🔨 How to add a new managed dependency</span>
 
 1. **Add a version property** to `<properties>`, following the existing `<artifactId>.version` convention (e.g. `<my-lib.version>1.2.3</my-lib.version>`).
-2. **Add the dependency** under `<dependencyManagement><dependencies>`, placed in (or under a new) section comment matching this file's categorization.
+2. **Add the dependency** under `<dependencyManagement><dependencies>`, next to the entries of the same area (§3 lists the groups).
 
    ```xml
    <dependency>
@@ -463,4 +417,4 @@ flowchart LR
 <!-- Library classes mentioned above, linked to their source at the versions this project builds with. -->
 
 [Scheduled]: https://github.com/spring-projects/spring-framework/blob/v7.0.9/spring-context/src/main/java/org/springframework/scheduling/annotation/Scheduled.java
-[ThreadLocal]: https://github.com/openjdk/jdk/blob/jdk-25-ga/src/java.base/share/classes/java/lang/ThreadLocal.java
+[ThreadLocal]: https://github.com/openjdk/jdk/blob/jdk-27-ga/src/java.base/share/classes/java/lang/ThreadLocal.java
