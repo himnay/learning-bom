@@ -14,7 +14,7 @@
 8. 🔨 [Quick reference — all managed dependencies](#8-quick-reference--all-managed-dependencies)
 9. 🔨 [Versioning policy for this BOM itself](#9-versioning-policy-for-this-bom-itself)
 
-**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.0.1`
+**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.1.0`
 
 - **What it is:** a `pom`-packaged Maven **Bill of Materials (BOM)** — declares *versions* only. No Java sources, no jar, never on anyone's classpath directly.
 - **Its one job:** `import`-scoped into the `dependencyManagement` of one other POM — [`super-pom`](https://github.com/himnay/super-pom).
@@ -214,6 +214,13 @@ Separately, further down the file:
 - Not a library any repo depends on deliberately — it's a small runtime shim the `openapi-generator-maven-plugin`'s `spring` template (configured in `super-pom`) emits references to in generated model classes, to distinguish "field absent" from "field explicitly set to `null`" in JSON.
 - Pinned here so generated code always compiles against a known-good version regardless of which repo runs the generator.
 
+
+### <span style="color:hsl(5,80%,58%)">3.16 JMX over HTTP (Jolokia)</span>
+
+- `org.jolokia:jolokia-support-springboot` at `${jolokia.version}` (`2.6.3`, supports Spring Boot 4).
+- Adds the `/actuator/jolokia` endpoint, which Spring Boot Admin's **JMX** view uses to browse MBeans and invoke operations (Hikari pool, Tomcat, caches).
+- ***Servlet-only*** — no effect on WebFlux apps (Spring Cloud Gateway, the Spring Boot Admin server).
+
 ---
 
 <a id="4-deliberately-held-back-versions--and-why"></a>
@@ -254,7 +261,7 @@ Separately, further down the file:
 <ul>
 
 - **`learning-bom`** (this repo) — declares no parent, packaging `pom`, only a `<dependencyManagement>` block. Never depended on directly by a leaf service.
-- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.0.1`, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also sets the Java baseline (`java.version` 27 since super-pom 1.2.0, 25 before) and centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with an `--add-opens` flag) that every leaf repo inherits alongside the dependency versions.
+- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.1.0` for `learning-*` repos on super-pom 1.2.1, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also sets the Java baseline (`java.version` 27 since super-pom 1.2.0, 25 before) and centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with an `--add-opens` flag) that every leaf repo inherits alongside the dependency versions.
 - **Leaf repos** (`llm-text2sql`, `llm-chat`, `llm-rag`, `llm-gateway`, `llm-mcp`, `llm-mcp-gateway`, `llm-deep-agent`, `llm-eval`, `llm-langchain4j`, `llm-OKF`, `learning-kafka`, `learning-graphql`, `learning-axon`, `learning-shedlock`, `learning-reactive`, `learning-utility`, `learning-wiremock`, `learning-testing-mutation`, ...) — each declares `com.org.llm:super-pom` as its Maven `<parent>` and nothing more. Dependencies typically have **no `<version>` tag at all** (see `llm-text2sql/pom.xml`'s `<dependencies>` block for a live example: `spring-boot-starter-web`, `spring-ai-starter-model-anthropic`, etc., all unversioned). Every version resolves transitively: leaf → `super-pom` (parent inheritance) → `learning-bom` (import, merged into `super-pom`'s effective `dependencyManagement`) → the concrete pinned version or platform-BOM entry.
 
 </ul>
@@ -269,10 +276,10 @@ flowchart TD
     subgraph BOM["learning-bom  (pom, this repo)"]
         direction TB
         A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.1<br/>spring-cloud-dependencies 2025.1.3<br/>spring-ai-bom 2.0.1<br/>testcontainers-bom 2.0.5<br/>(resilience4j via spring-cloud: 2.3.0)<br/>langchain4j-bom 1.20.1"]
-        A2["Individually managed:<br/>shedlock 7.10.1<br/>pdfbox 3.0.8 · poi-ooxml 5.5.1 · tess4j 5.20.0<br/>anthropic-java 2.65.0 · avro 1.12.2<br/>confluent 8.3.2 · springdoc 3.1.1 · ..."]
+        A2["Individually managed:<br/>shedlock 7.10.1<br/>pdfbox 3.0.8 · poi-ooxml 5.5.1 · tess4j 5.20.0<br/>anthropic-java 2.65.0 · avro 1.12.2<br/>confluent 8.3.2 · springdoc 3.1.1 · jolokia 2.6.3 · ..."]
     end
 
-    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.2.0 (Java 27), llm-* repos on 1.1.4 (Java 25)<br/>both import BOM 3.0.1<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
+    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.2.1 (Java 27, BOM 3.1.0)<br/>llm-* repos on 1.1.4 (Java 25, BOM 3.0.1)<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
 
     BOM -- "scope=import<br/>(dependencyManagement only, no code)" --> SP
 
@@ -391,6 +398,7 @@ flowchart LR
 | `com.google.zxing:core / javase` | `zxing.version` | `3.5.4` |
 | `dev.samstevens.totp:totp / totp-spring-boot-starter` | `samstevens-totp.version` | `1.7.1` |
 | `org.openapitools:jackson-databind-nullable` | `jackson-databind-nullable.version` | `0.2.11` |
+| `org.jolokia:jolokia-support-springboot` | `jolokia.version` | `2.6.3` |
 
 ---
 
@@ -413,6 +421,7 @@ flowchart LR
 - ***2.1.0 (Sept 2026, superseded)***: added an explicit `resilience4j-spring-boot4` entry — which split the line (see §4.1).
 - ***3.0.0 (Sept 2026) is a major bump***: removes the `resilience4j-bom` import, the `resilience4j.version` property and the `resilience4j-spring-boot4` entry; Resilience4j now follows Spring Cloud (2.3.0). Use `resilience4j-spring-boot3`.
 - ***3.0.1 (Sept 2026) is a patch bump***: Spring Boot Admin 4.1.3 and LangChain4j 1.20.1 (core BOM; `langchain4j-community-redis` stays on `1.20.0-beta30`, still its latest).
+- ***3.1.0 (Oct 2026) is a minor bump***: adds `org.jolokia:jolokia-support-springboot` 2.6.3 (Spring Boot Admin JMX view); nothing existing changes.
 
 <!-- Library classes mentioned above, linked to their source at the versions this project builds with. -->
 
