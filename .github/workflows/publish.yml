@@ -1,0 +1,37 @@
+name: Publish
+# Deploys learning-bom to GitHub Packages so tools that only see this repo (Dependabot) can resolve it.
+# GitHub Packages refuses to overwrite a release version, so an already-published version is skipped.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '27'
+          distribution: 'temurin'
+          server-id: github
+      - name: Check whether this version is published
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(mvn -B -q -N help:evaluate -Dexpression=project.version -DforceStdout)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh api "/users/${{ github.repository_owner }}/packages/maven/com.org.learning.learning-bom/versions" \
+               --jq '.[].name' 2>/dev/null | grep -qx "$version"; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "learning-bom $version is already published"
+          fi
+      - name: Deploy
+        if: steps.version.outputs.published != 'true'
+        run: mvn -B -N deploy -DaltDeploymentRepository=github::https://maven.pkg.github.com/${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
