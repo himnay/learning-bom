@@ -5,37 +5,37 @@
 
     <groupId>com.org.learning</groupId>
     <artifactId>learning-bom</artifactId>
-    <version>3.1.0</version>
+    <version>3.1.1</version>
 
     <packaging>pom</packaging>
     <name>LLM :: BOM</name>
     <description>Bill of Materials — single source of truth for all dependency versions</description>
 
     <properties>
-        <spring-boot.version>4.1.1</spring-boot.version>
-        <spring-cloud.version>2025.1.3</spring-cloud.version>
-        <spring-boot-admin.version>4.1.3</spring-boot-admin.version>
-        <spring-ai.version>2.0.1</spring-ai.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
+        <spring-cloud.version>2025.1.4</spring-cloud.version>
+        <spring-boot-admin.version>4.1.5</spring-boot-admin.version>
+        <spring-ai.version>2.0.2</spring-ai.version>
         <logstash-logback.version>9.0</logstash-logback.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <pdfbox.version>3.0.8</pdfbox.version>
-        <poi-ooxml.version>5.5.1</poi-ooxml.version>
-        <tess4j.version>5.20.0</tess4j.version>
-        <anthropic-java.version>2.65.0</anthropic-java.version>
+        <poi-ooxml.version>6.0.0</poi-ooxml.version>
+        <tess4j.version>5.21.0</tess4j.version>
+        <anthropic-java.version>3.7.0</anthropic-java.version>
         <swagger-parser.version>2.1.48</swagger-parser.version>
         <micrometer-jvm-extras.version>0.3.0</micrometer-jvm-extras.version>
         <micrometer-context-propagation.version>1.2.1</micrometer-context-propagation.version>
-        <shedlock.version>7.10.1</shedlock.version>
-        <langchain4j-bom.version>1.20.1</langchain4j-bom.version>
+        <shedlock.version>7.11.0</shedlock.version>
+        <langchain4j-bom.version>1.23.0</langchain4j-bom.version>
         <avro.version>1.12.2</avro.version>
-        <confluent.version>8.3.2</confluent.version>
-        <langchain4j-redis.version>1.20.0-beta30</langchain4j-redis.version>
-        <springdoc.version>3.1.1</springdoc.version>
+        <confluent.version>8.4.1</confluent.version>
+        <langchain4j-redis.version>1.23.0-beta33</langchain4j-redis.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <zxing.version>3.5.4</zxing.version>
         <samstevens-totp.version>1.7.1</samstevens-totp.version>
-        <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
-        <ojdbc.version>23.26.3.0.0</ojdbc.version>
-        <jolokia.version>2.6.3</jolokia.version>
+        <jackson-databind-nullable.version>0.2.13</jackson-databind-nullable.version>
+        <ojdbc.version>23.26.4.0.0</ojdbc.version>
+        <jolokia.version>2.6.5</jolokia.version>
     </properties>
 
     <dependencyManagement>

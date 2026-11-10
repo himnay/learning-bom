@@ -14,7 +14,7 @@
 8. 🔨 [Quick reference — all managed dependencies](#8-quick-reference--all-managed-dependencies)
 9. 🔨 [Versioning policy for this BOM itself](#9-versioning-policy-for-this-bom-itself)
 
-**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.1.0`
+**groupId:** `com.org.learning` · **artifactId:** `learning-bom` · **packaging:** `pom` · **current version:** `3.1.1`
 
 - **What it is:** a `pom`-packaged Maven **Bill of Materials (BOM)** — declares *versions* only. No Java sources, no jar, never on anyone's classpath directly.
 - **Its one job:** `import`-scoped into the `dependencyManagement` of one other POM — [`super-pom`](https://github.com/himnay/super-pom).
@@ -90,7 +90,7 @@ A plain `<dependency>` entry inside `<dependencyManagement>` can point at anothe
 </dependency>
 ```
 
-- This tells Maven: *"fetch `spring-boot-dependencies:4.1.1`'s own `<dependencyManagement>` block wholesale, and splice all of its entries into mine, as if I typed them all by hand."*
+- This tells Maven: *"fetch `spring-boot-dependencies:4.1.2`'s own `<dependencyManagement>` block wholesale, and splice all of its entries into mine, as if I typed them all by hand."*
 - Two properties matter a great deal in practice:
 
 1. **Additive/textual, not inherited-by-reference.** The importing POM's own entries merge with everything imported. Order matters between imports: if two imported BOMs both manage the same `groupId:artifactId`, **the first import wins** — later ones are silently ignored. An entry declared directly in the importing POM's `<dependencyManagement>` beats every import, wherever it appears in the file. This is why this BOM always imports `spring-boot-dependencies` before `spring-cloud-dependencies`, `spring-ai-bom`, and `testcontainers-bom` — Spring Cloud's and Spring AI's BOMs sometimes manage a coordinate (e.g. Jackson, Netty) that Spring Boot also manages, and the intent is for Spring Boot's own mutually-tested set to win.
@@ -113,9 +113,9 @@ The full `pom.xml` is a `<properties>` block of versions plus one `<dependencyMa
 
 | Imported BOM                                          | Property                 | Version    |
 |-------------------------------------------------------|--------------------------|------------|
-| `org.springframework.boot:spring-boot-dependencies`   | `spring-boot.version`    | `4.1.1`    |
-| `org.springframework.cloud:spring-cloud-dependencies` | `spring-cloud.version`   | `2025.1.3` |
-| `org.springframework.ai:spring-ai-bom`                | `spring-ai.version`      | `2.0.1`    |
+| `org.springframework.boot:spring-boot-dependencies`   | `spring-boot.version`    | `4.1.2`    |
+| `org.springframework.cloud:spring-cloud-dependencies` | `spring-cloud.version`   | `2025.1.4` |
+| `org.springframework.ai:spring-ai-bom`                | `spring-ai.version`      | `2.0.2`    |
 | `org.testcontainers:testcontainers-bom`               | `testcontainers.version` | `2.0.5`    |
 
 - These four are themselves upstream-maintained BOMs, each managing dozens to hundreds of their own artifacts (e.g. `spring-boot-dependencies` manages `spring-boot-starter-web`, `jackson-databind`, `tomcat-embed-core`, and hundreds more).
@@ -124,7 +124,7 @@ The full `pom.xml` is a `<properties>` block of versions plus one `<dependencyMa
 
 ### <span style="color:hsl(210,80%,58%)">3.2 Oracle JDBC</span>
 
-- `com.oracle.database.jdbc:ojdbc17` at `${ojdbc.version}` (`23.26.3.0.0`).
+- `com.oracle.database.jdbc:ojdbc17` at `${ojdbc.version}` (`23.26.4.0.0`).
 - Oracle doesn't publish a BOM covering this driver conveniently, so it's pinned directly as an individually-managed artifact.
 
 ### <span style="color:hsl(347,80%,58%)">3.3 Resilience4j</span>
@@ -136,7 +136,7 @@ The full `pom.xml` is a `<properties>` block of versions plus one `<dependencyMa
 
 - `io.github.mweirauch:micrometer-jvm-extras` (`${micrometer-jvm-extras.version}` = `0.3.0`) — adds JVM metrics (GC, classloading, thread pools) beyond core Micrometer.
 - `io.micrometer:context-propagation` (`${micrometer-context-propagation.version}` = `1.2.1`) — carries [`ThreadLocal`][ThreadLocal]/`Reactor Context` state (MDC, tracing spans) across async and reactive boundaries.
-- `de.codecentric:spring-boot-admin-starter-server` and `spring-boot-admin-starter-client` (`${spring-boot-admin.version}` = `4.1.3`) — an admin UI (server) that monitors registered Spring Boot apps (clients) through their actuator endpoints.
+- `de.codecentric:spring-boot-admin-starter-server` and `spring-boot-admin-starter-client` (`${spring-boot-admin.version}` = `4.1.5`) — an admin UI (server) that monitors registered Spring Boot apps (clients) through their actuator endpoints.
 
 ### <span style="color:hsl(262,80%,58%)">3.5 Structured logging</span>
 
@@ -144,7 +144,7 @@ The full `pom.xml` is a `<properties>` block of versions plus one `<dependencyMa
 
 ### <span style="color:hsl(40,80%,58%)">3.6 Distributed scheduling</span>
 
-- `net.javacrumbs.shedlock:shedlock-spring`, `shedlock-provider-jdbc-template`, and `shedlock-provider-redis-spring`, plus `shedlock-micrometer`, all at `${shedlock.version}` (`7.10.1`).
+- `net.javacrumbs.shedlock:shedlock-spring`, `shedlock-provider-jdbc-template`, and `shedlock-provider-redis-spring`, plus `shedlock-micrometer`, all at `${shedlock.version}` (`7.11.0`).
 - Shedlock prevents the same [`@Scheduled`][Scheduled] job from running concurrently on more than one instance of a horizontally-scaled service, using a JDBC row lock or Redis lock as the distributed mutex, depending on the provider chosen.
 
 ### <span style="color:hsl(177,80%,58%)">3.7 Document processing</span>
@@ -152,19 +152,19 @@ The full `pom.xml` is a `<properties>` block of versions plus one `<dependencyMa
 | Artifact                        | Property            | Version  | Purpose                                              |
 |----------------------------------|---------------------|----------|-------------------------------------------------------|
 | `org.apache.pdfbox:pdfbox`      | `pdfbox.version`    | `3.0.8`  | Read/write/manipulate PDF documents                  |
-| `org.apache.poi:poi-ooxml`      | `poi-ooxml.version` | `5.5.1`  | Read/write Office Open XML (`.docx`/`.xlsx`/`.pptx`) |
-| `net.sourceforge.tess4j:tess4j` | `tess4j.version`    | `5.20.0` | JNA bindings to Tesseract OCR                        |
+| `org.apache.poi:poi-ooxml`      | `poi-ooxml.version` | `6.0.0`  | Read/write Office Open XML (`.docx`/`.xlsx`/`.pptx`) |
+| `net.sourceforge.tess4j:tess4j` | `tess4j.version`    | `5.21.0` | JNA bindings to Tesseract OCR                        |
 
 - These three together cover the document-ingestion pipeline used by the RAG/document-processing repos: extracting text from PDFs, Office documents, and scanned/image-based pages via OCR.
 
 ### <span style="color:hsl(315,80%,58%)">3.8 AI SDKs</span>
 
-- `com.anthropic:anthropic-java` at `${anthropic-java.version}` (`2.65.0`) — the official Anthropic Java SDK.
+- `com.anthropic:anthropic-java` at `${anthropic-java.version}` (`3.7.0`) — the official Anthropic Java SDK.
 - Used directly (outside Spring AI's abstraction) wherever a repo needs lower-level access to the Claude Messages API, streaming, or tool-use primitives that Spring AI's starter doesn't expose.
 
 ### <span style="color:hsl(92,80%,58%)">3.9 langchain4j</span>
 
-- `dev.langchain4j:langchain4j-bom` is imported (`scope=import`, like the platform BOMs in §3.1) at `${langchain4j-bom.version}` (`1.20.1`), managing the core LangChain4j modules (chains, memory, embedding stores, tool integration) as one coordinated set.
+- `dev.langchain4j:langchain4j-bom` is imported (`scope=import`, like the platform BOMs in §3.1) at `${langchain4j-bom.version}` (`1.23.0`), managing the core LangChain4j modules (chains, memory, embedding stores, tool integration) as one coordinated set.
 
 Separately, further down the file:
 
@@ -176,7 +176,7 @@ Separately, further down the file:
 </dependency>
 ```
 
-- `langchain4j-community-redis` is pinned individually at `${langchain4j-redis.version}` (`1.20.0-beta30`) rather than picked up from the BOM import.
+- `langchain4j-community-redis` is pinned individually at `${langchain4j-redis.version}` (`1.23.0-beta33`) rather than picked up from the BOM import.
 - Reason: `langchain4j-community` modules (Redis, and others) release on their own beta cadence, independent of the core BOM's line — they aren't managed by it at all.
 - This entry exists because a repo in this workspace (`llm-rag` or similar) needs Redis-backed embedding storage.
 
@@ -185,7 +185,7 @@ Separately, further down the file:
 | Artifact                             | Property            | Version  |
 |---------------------------------------|---------------------|----------|
 | `org.apache.avro:avro`               | `avro.version`      | `1.12.2` |
-| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.3.2`  |
+| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.4.1`  |
 
 - Avro provides the schema/serialization format; Confluent's `kafka-avro-serializer` integrates Avro (de)serialization with the Confluent Schema Registry for Kafka producers/consumers.
 - Note: `io.confluent` artifacts are **not** published to Maven Central — any repo consuming this managed version needs Confluent's Maven repository configured (`super-pom` already declares it under `<repositories>`).
@@ -196,7 +196,7 @@ Separately, further down the file:
 
 ### <span style="color:hsl(145,80%,58%)">3.12 OpenAPI / Swagger UI</span>
 
-- `org.springdoc:springdoc-openapi-starter-webflux-ui` and `org.springdoc:springdoc-openapi-starter-webmvc-ui`, both at `${springdoc.version}` (`3.1.1`).
+- `org.springdoc:springdoc-openapi-starter-webflux-ui` and `org.springdoc:springdoc-openapi-starter-webmvc-ui`, both at `${springdoc.version}` (`3.2.0`).
 - Generates OpenAPI 3 documentation and a Swagger UI page from Spring MVC or WebFlux controller annotations, depending on which stack a repo uses.
 
 ### <span style="color:hsl(282,80%,58%)">3.13 QR code processing</span>
@@ -210,14 +210,14 @@ Separately, further down the file:
 
 ### <span style="color:hsl(197,80%,58%)">3.15 `openapi-generator` "spring" template runtime dependency</span>
 
-- `org.openapitools:jackson-databind-nullable` at `${jackson-databind-nullable.version}` (`0.2.11`).
+- `org.openapitools:jackson-databind-nullable` at `${jackson-databind-nullable.version}` (`0.2.13`).
 - Not a library any repo depends on deliberately — it's a small runtime shim the `openapi-generator-maven-plugin`'s `spring` template (configured in `super-pom`) emits references to in generated model classes, to distinguish "field absent" from "field explicitly set to `null`" in JSON.
 - Pinned here so generated code always compiles against a known-good version regardless of which repo runs the generator.
 
 
 ### <span style="color:hsl(5,80%,58%)">3.16 JMX over HTTP (Jolokia)</span>
 
-- `org.jolokia:jolokia-support-springboot` at `${jolokia.version}` (`2.6.3`, supports Spring Boot 4).
+- `org.jolokia:jolokia-support-springboot` at `${jolokia.version}` (`2.6.5`, supports Spring Boot 4).
 - Adds the `/actuator/jolokia` endpoint, which Spring Boot Admin's **JMX** view uses to browse MBeans and invoke operations (Hikari pool, Tomcat, caches).
 - ***Servlet-only*** — no effect on WebFlux apps (Spring Cloud Gateway, the Spring Boot Admin server).
 
@@ -233,7 +233,7 @@ Separately, further down the file:
 - 2.4.0 added a `SpringBoot3Verifier` to `resilience4j-spring-boot3` that fails fast when it loads under Spring Boot 4.
 - The same release ships a dedicated ***`resilience4j-spring-boot4`*** starter, so the verifier only fires when you use the wrong starter on Boot 4.
 - Why it can't simply move to 2.4.0 + the boot4 starter (tried in 2.0.0/2.1.0, reverted in 3.0.0):
-  - ***Spring Cloud CircuitBreaker 5.0.3*** (latest, train 2025.1.3) depends on `resilience4j-spring-boot3`. Forcing 2.4.0 makes its verifier kill every Spring Cloud Gateway / CircuitBreaker app at startup ("only compatible with Spring Boot 3.x"). The verifier has no off-switch.
+  - ***Spring Cloud CircuitBreaker 5.0.3*** (latest, train 2025.1.4) depends on `resilience4j-spring-boot3`. Forcing 2.4.0 makes its verifier kill every Spring Cloud Gateway / CircuitBreaker app at startup ("only compatible with Spring Boot 3.x"). The verifier has no off-switch.
   - `spring-cloud-dependencies` is imported first and already imports `resilience4j-bom` 2.3.0 — first import wins, so a later `resilience4j-bom` 2.4.0 import is silently ignored (2.0.0's "2.4.0" never took effect).
   - `resilience4j-bom` 2.4.0 does not even list `resilience4j-spring-boot4`; managing it explicitly (2.1.0) produced a boot4 2.4.0 starter on 2.3.0 core modules — a split line.
 - ***Rule:*** Boot 4 services use `resilience4j-spring-boot3` (versionless → Spring Cloud's 2.3.0, which has no verifier). Re-check when a Spring Cloud train ships CircuitBreaker on `resilience4j-spring-boot4`.
@@ -246,7 +246,7 @@ Separately, further down the file:
 
 ### <span style="color:hsl(27,80%,58%)">4.3 Shedlock — was held at `5.16.0` (resolved before 2.0.0)</span>
 
-- The original fear was that 7.x dropped the `shedlock-micrometer` module used by `learning-shedlock`. Verification showed it still ships, so the pin was lifted, and 2.0.0 tracks the latest 7.x (`7.10.1`).
+- The original fear was that 7.x dropped the `shedlock-micrometer` module used by `learning-shedlock`. Verification showed it still ships, so the pin was lifted, and 2.0.0 tracks the latest 7.x (`7.11.0`).
 
 **The general pattern:** a pin must carry a *specific, verified, reproducible* reason, and it is lifted in the same change that migrates the dependent code. Before holding anything back, check whether upstream already ships the fix, as Resilience4j did with a Boot 4 starter.
 
@@ -261,7 +261,7 @@ Separately, further down the file:
 <ul>
 
 - **`learning-bom`** (this repo) — declares no parent, packaging `pom`, only a `<dependencyManagement>` block. Never depended on directly by a leaf service.
-- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.1.0` for `learning-*` repos on super-pom 1.2.1, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also sets the Java baseline (`java.version` 27 since super-pom 1.2.0, 25 before) and centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with an `--add-opens` flag) that every leaf repo inherits alongside the dependency versions.
+- **`super-pom`** (`com.org.llm:super-pom`) — its Maven `<parent>` is `org.springframework.boot:spring-boot-starter-parent` (inherits Spring Boot's default plugin config, resource filtering, encoding). Inside its own `<dependencyManagement>`, it `import`-scopes `learning-bom` at `${learning-bom.version}` (currently `3.1.1` for `learning-*` repos on super-pom 1.2.2, matching this BOM's own `pom.xml` `<version>` — kept in lockstep by hand today). Also sets the Java baseline (`java.version` 27 since super-pom 1.2.0, 25 before) and centrally wires shared build plugins (Spotless, Maven Enforcer, JaCoCo, `openapi-generator-maven-plugin`, `git-commit-id-maven-plugin`, Surefire/Failsafe with an `--add-opens` flag) that every leaf repo inherits alongside the dependency versions.
 - **Leaf repos** (`llm-text2sql`, `llm-chat`, `llm-rag`, `llm-gateway`, `llm-mcp`, `llm-mcp-gateway`, `llm-deep-agent`, `llm-eval`, `llm-langchain4j`, `llm-OKF`, `learning-kafka`, `learning-graphql`, `learning-axon`, `learning-shedlock`, `learning-reactive`, `learning-utility`, `learning-wiremock`, `learning-testing-mutation`, ...) — each declares `com.org.llm:super-pom` as its Maven `<parent>` and nothing more. Dependencies typically have **no `<version>` tag at all** (see `llm-text2sql/pom.xml`'s `<dependencies>` block for a live example: `spring-boot-starter-web`, `spring-ai-starter-model-anthropic`, etc., all unversioned). Every version resolves transitively: leaf → `super-pom` (parent inheritance) → `learning-bom` (import, merged into `super-pom`'s effective `dependencyManagement`) → the concrete pinned version or platform-BOM entry.
 
 </ul>
@@ -275,11 +275,11 @@ Separately, further down the file:
 flowchart TD
     subgraph BOM["learning-bom  (pom, this repo)"]
         direction TB
-        A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.1<br/>spring-cloud-dependencies 2025.1.3<br/>spring-ai-bom 2.0.1<br/>testcontainers-bom 2.0.5<br/>(resilience4j via spring-cloud: 2.3.0)<br/>langchain4j-bom 1.20.1"]
-        A2["Individually managed:<br/>shedlock 7.10.1<br/>pdfbox 3.0.8 · poi-ooxml 5.5.1 · tess4j 5.20.0<br/>anthropic-java 2.65.0 · avro 1.12.2<br/>confluent 8.3.2 · springdoc 3.1.1 · jolokia 2.6.3 · ..."]
+        A1["Platform BOM imports:<br/>spring-boot-dependencies 4.1.2<br/>spring-cloud-dependencies 2025.1.4<br/>spring-ai-bom 2.0.2<br/>testcontainers-bom 2.0.5<br/>(resilience4j via spring-cloud: 2.3.0)<br/>langchain4j-bom 1.23.0"]
+        A2["Individually managed:<br/>shedlock 7.11.0<br/>pdfbox 3.0.8 · poi-ooxml 6.0.0 · tess4j 5.21.0<br/>anthropic-java 3.7.0 · avro 1.12.2<br/>confluent 8.4.1 · springdoc 3.2.0 · jolokia 2.6.5 · ..."]
     end
 
-    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.2.1 (Java 27, BOM 3.1.0)<br/>llm-* repos on 1.1.4 (Java 25, BOM 3.0.1)<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
+    SP["super-pom  (com.org.llm:super-pom)<br/>learning-* repos on 1.2.2 (Java 27, BOM 3.1.1)<br/>llm-* repos on 1.1.4 (Java 25, BOM 3.0.1)<br/>parent = spring-boot-starter-parent<br/>imports learning-bom via &lt;dependencyManagement&gt;<br/>+ wires shared build plugins"]
 
     BOM -- "scope=import<br/>(dependencyManagement only, no code)" --> SP
 
@@ -369,36 +369,36 @@ flowchart LR
 
 | BOM                                                   | Version    |
 |-------------------------------------------------------|------------|
-| `org.springframework.boot:spring-boot-dependencies`   | `4.1.1`    |
-| `org.springframework.cloud:spring-cloud-dependencies` | `2025.1.3` |
-| `org.springframework.ai:spring-ai-bom`                | `2.0.1`    |
+| `org.springframework.boot:spring-boot-dependencies`   | `4.1.2`    |
+| `org.springframework.cloud:spring-cloud-dependencies` | `2025.1.4` |
+| `org.springframework.ai:spring-ai-bom`                | `2.0.2`    |
 | `org.testcontainers:testcontainers-bom`               | `2.0.5`    |
-| `dev.langchain4j:langchain4j-bom`                     | `1.20.1`   |
+| `dev.langchain4j:langchain4j-bom`                     | `1.23.0`   |
 
 ### <span style="color:hsl(47,80%,50%)">Individually pinned dependencies</span>
 
 | Group / Artifact | Version property | Version |
 |---|---|---|
-| `com.oracle.database.jdbc:ojdbc17` | `ojdbc.version` | `23.26.3.0.0` |
+| `com.oracle.database.jdbc:ojdbc17` | `ojdbc.version` | `23.26.4.0.0` |
 | `io.github.resilience4j:*` (via `spring-cloud-dependencies` → `resilience4j-bom`) | — (Spring Cloud) | `2.3.0` |
-| `de.codecentric:spring-boot-admin-starter-server / -client` | `spring-boot-admin.version` | `4.1.3` |
+| `de.codecentric:spring-boot-admin-starter-server / -client` | `spring-boot-admin.version` | `4.1.5` |
 | `io.github.mweirauch:micrometer-jvm-extras` | `micrometer-jvm-extras.version` | `0.3.0` |
 | `io.micrometer:context-propagation` | `micrometer-context-propagation.version` | `1.2.1` |
 | `net.logstash.logback:logstash-logback-encoder` | `logstash-logback.version` | `9.0` |
-| `net.javacrumbs.shedlock:shedlock-spring / -provider-jdbc-template / -provider-redis-spring / -micrometer` | `shedlock.version` | `7.10.1` |
+| `net.javacrumbs.shedlock:shedlock-spring / -provider-jdbc-template / -provider-redis-spring / -micrometer` | `shedlock.version` | `7.11.0` |
 | `org.apache.pdfbox:pdfbox` | `pdfbox.version` | `3.0.8` |
-| `org.apache.poi:poi-ooxml` | `poi-ooxml.version` | `5.5.1` |
-| `net.sourceforge.tess4j:tess4j` | `tess4j.version` | `5.20.0` |
-| `com.anthropic:anthropic-java` | `anthropic-java.version` | `2.65.0` |
+| `org.apache.poi:poi-ooxml` | `poi-ooxml.version` | `6.0.0` |
+| `net.sourceforge.tess4j:tess4j` | `tess4j.version` | `5.21.0` |
+| `com.anthropic:anthropic-java` | `anthropic-java.version` | `3.7.0` |
 | `org.apache.avro:avro` | `avro.version` | `1.12.2` |
-| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.3.2` |
-| `dev.langchain4j:langchain4j-community-redis` | `langchain4j-redis.version` | `1.20.0-beta30` |
+| `io.confluent:kafka-avro-serializer` | `confluent.version` | `8.4.1` |
+| `dev.langchain4j:langchain4j-community-redis` | `langchain4j-redis.version` | `1.23.0-beta33` |
 | `io.swagger.parser.v3:swagger-parser` | `swagger-parser.version` | `2.1.48` |
-| `org.springdoc:springdoc-openapi-starter-webflux-ui / -webmvc-ui` | `springdoc.version` | `3.1.1` |
+| `org.springdoc:springdoc-openapi-starter-webflux-ui / -webmvc-ui` | `springdoc.version` | `3.2.0` |
 | `com.google.zxing:core / javase` | `zxing.version` | `3.5.4` |
 | `dev.samstevens.totp:totp / totp-spring-boot-starter` | `samstevens-totp.version` | `1.7.1` |
-| `org.openapitools:jackson-databind-nullable` | `jackson-databind-nullable.version` | `0.2.11` |
-| `org.jolokia:jolokia-support-springboot` | `jolokia.version` | `2.6.3` |
+| `org.openapitools:jackson-databind-nullable` | `jackson-databind-nullable.version` | `0.2.13` |
+| `org.jolokia:jolokia-support-springboot` | `jolokia.version` | `2.6.5` |
 
 ---
 
@@ -422,6 +422,7 @@ flowchart LR
 - ***3.0.0 (Sept 2026) is a major bump***: removes the `resilience4j-bom` import, the `resilience4j.version` property and the `resilience4j-spring-boot4` entry; Resilience4j now follows Spring Cloud (2.3.0). Use `resilience4j-spring-boot3`.
 - ***3.0.1 (Sept 2026) is a patch bump***: Spring Boot Admin 4.1.3 and LangChain4j 1.20.1 (core BOM; `langchain4j-community-redis` stays on `1.20.0-beta30`, still its latest).
 - ***3.1.0 (Oct 2026) is a minor bump***: adds `org.jolokia:jolokia-support-springboot` 2.6.3 (Spring Boot Admin JMX view); nothing existing changes.
+- ***3.1.1 (Nov 2026) is a patch bump***: version numbers only, every managed entry to its latest stable release — Spring Boot 4.1.2, Spring Cloud 2025.1.4, Spring Boot Admin 4.1.5, Spring AI 2.0.2, LangChain4j 1.23.0 (`langchain4j-community-redis` 1.23.0-beta33), springdoc 3.2.0, ShedLock 7.11.0, Confluent 8.4.1, ojdbc17 23.26.4.0.0, Jolokia 2.6.5, jackson-databind-nullable 0.2.13, tess4j 5.21.0, and two ***major*** library lines: Apache POI 6.0.0 and anthropic-java 3.7.0 (a patch under §9's policy, but consumers of those two artifacts may need code changes).
 
 <!-- Library classes mentioned above, linked to their source at the versions this project builds with. -->
 
